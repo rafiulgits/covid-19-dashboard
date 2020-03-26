@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <title>JQVMap - World Map</title>
+    <meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
+
+    <link
+      href="./dist/jqvmap.css"
+      media="screen"
+      rel="stylesheet"
+      type="text/css"
+    />
+    <style>
+      html,
+      body {
+        padding: 0;
+        margin: 0;
+        width: 100%;
+        height: 100%;
+      }
+      #vmap {
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+
+    <script
+      type="text/javascript"
+      src="http://code.jquery.com/jquery-1.11.3.min.js"
+    ></script>
+    <script type="text/javascript" src="./dist/jquery.vmap.js"></script>
+    <script
+      type="text/javascript"
+      src="./dist/maps/jquery.vmap.world.js"
+      charset="utf-8"
+    ></script>
+    <script type="text/javascript" src="js/jquery.vmap.sampledata.js"></script>
+
+    <script type="text/javascript">
+      const buildNotfication = result => {
+        let notification = `New Confirmed : ${result.NewConfirmed}\n`;
+        notification += `Total Confirmed : ${result.TotalConfirmed}\n`;
+        notification += `New Deaths : ${result.NewDeaths}\n`;
+        notification += `Total Deaths : ${result.TotalDeaths}\n`;
+        notification += `New Recovered : ${result.NewRecovered}\n`;
+        notification += `Total Recovered : ${result.NewRecovered}`;
+        return notification;
+      };
+
+      var loaded = false;
+
+      const show = () => {
+        $("#loader").hide();
+        jQuery("#vmap").vectorMap({
+          map: "world_en",
+          enableZoom: true,
+          showTooltip: true,
+          onResize: function(element, width, height) {
+            console.log("Map Size: " + width + "x" + height);
+          },
+          onRegionClick: function(element, code, region) {
+            let result = summary.find(item => {
+              return item["Country"] === region;
+            });
+            if (result !== undefined) {
+              let notification = buildNotfication(result);
+              console.log(result);
+              alert(notification);
+              return;
+            }
+            let reCheck = summary.find(
+              item => item.Country.toLowerCase() === code.toLowerCase()
+            );
+            if (reCheck !== undefined) {
+              let notification = buildNotfication(reCheck);
+              alert(notification);
+              return;
+            }
+          }
+        });
+      };
+      var summary = [];
+      $(() => {
+        axios
+          .get("https://api.covid19api.com/summary", null)
+          .then(res => {
+            summary = res.data.Countries;
+            loaded = true;
+            show();
+          })
+          .catch(err => {
+            console.err(err);
+          });
+      });
+    </script>
+  </head>
+  <body>
+    <div id="loader" style="display: flex; justify-content: center;">
+      <h2 style="text-align: center;">Loading Data...</h2>
+    </div>
+    <div id="vmap"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.2/axios.min.js"></script>
+  </body>
+</html>
