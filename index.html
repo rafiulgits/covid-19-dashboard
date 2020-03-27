@@ -2,7 +2,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
   <head>
-    <title>JQVMap - World Map</title>
+    <title>Covid 19 Dashboard</title>
     <meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
 
     <link
@@ -29,6 +29,28 @@
         height: 100%;
         padding: 0;
         margin: 0;
+      }
+      .modal-dialog {
+        width: 100% !important;
+        height: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        max-width: none !important;
+      }
+
+      .modal-content {
+        height: auto !important;
+        min-height: 100% !important;
+        border-radius: 0 !important;
+        background-color: #ececec !important;
+      }
+
+      .modal-header {
+        border-bottom: 1px solid #9ea2a2 !important;
+      }
+
+      .modal-footer {
+        border-top: 1px solid #9ea2a2 !important;
       }
     </style>
 
@@ -63,14 +85,17 @@
         });
       };
 
-      const buildNotfication = result => {
-        let notification = `New Confirmed : ${result.NewConfirmed}\n`;
-        notification += `Total Confirmed : ${result.TotalConfirmed}\n`;
-        notification += `New Deaths : ${result.NewDeaths}\n`;
-        notification += `Total Deaths : ${result.TotalDeaths}\n`;
-        notification += `New Recovered : ${result.NewRecovered}\n`;
-        notification += `Total Recovered : ${result.NewRecovered}`;
-        return notification;
+      const showRegionResultText = result => {
+        $("#region-new-confirmed").text(`Confirmed : ${result.NewConfirmed}`);
+        $("#region-new-deaths").text(`Deaths : ${result.NewDeaths}`);
+        $("#region-new-recovered").text(`Recovered : ${result.NewRecovered}`);
+        $("#region-total-confirmed").text(
+          `Confirmed : ${result.TotalConfirmed}`
+        );
+        $("#region-total-deaths").text(`Deaths : ${result.TotalDeaths}`);
+        $("#region-total-recovered").text(
+          `Recovered : ${result.TotalRecovered}`
+        );
       };
 
       const removeLoaderAndShowMap = () => {
@@ -84,14 +109,28 @@
             console.log("Map Size: " + width + "x" + height);
           },
           onRegionClick: function(element, code, region) {
+            console.log(code);
             let result = allCountrySummary.find(item => {
-              return item["Country"] === region || item["Country"] === code;
+              return (
+                item["Country"] === region ||
+                item["Country"].toLowerCase() === code
+              );
             });
+            console.log(result);
             if (result !== undefined) {
-              let notification = buildNotfication(result);
+              showRegionResultText(result);
               $("#modal-title").text(region);
-              $("#modal-body").text(notification);
               $("#alert-modal").modal("show");
+              let exception = code.toLowerCase();
+              if (exception === "us") {
+                fetchAndDisplay(code);
+                return;
+              }
+              if (exception === "ru") {
+                fetchAndDisplay("russia");
+                return;
+              }
+              fetchAndDisplay(region);
               return;
             }
           }
@@ -194,6 +233,117 @@
         });
       };
     </script>
+
+    <!-- Region wise information  -->
+    <script>
+      const processRegionAPIData = objArr => {
+        let list = [];
+        Array.from(objArr).forEach(item => {
+          list.push(item.Cases);
+        });
+        return list;
+      };
+
+      const processDateTimeFromAPIData = objArr => {
+        let list = [];
+        Array.from(objArr).forEach(item => {
+          list.push(new Date(item.Date).getDate().toLocaleString());
+        });
+        return list;
+      };
+
+      const fetchAndDisplay = region => {
+        let chart = generateRegionChart();
+        fetchRegionData(region, chart);
+      };
+
+      const fetchRegionData = (region, chart) => {
+        axios
+          .get(
+            `https://api.covid19api.com/total/country/${region}/status/confirmed`
+          )
+          .then(res => {
+            chart.data.datasets[0].data = processRegionAPIData(res.data);
+            chart.data.labels = processDateTimeFromAPIData(res.data);
+            chart.update();
+          })
+          .catch(err => {
+            console.error(err);
+          });
+        axios
+          .get(
+            `https://api.covid19api.com/total/country/${region}/status/deaths`
+          )
+          .then(res => {
+            chart.data.datasets[1].data = processRegionAPIData(res.data);
+            chart.update();
+          })
+          .catch(err => {
+            console.error(err);
+          });
+        axios
+          .get(
+            `https://api.covid19api.com/total/country/${region}/status/recovered`
+          )
+          .then(res => {
+            chart.data.datasets[2].data = processRegionAPIData(res.data);
+            chart.update();
+          })
+          .catch(err => {
+            console.error(err);
+          });
+      };
+
+      const generateRegionChart = () => {
+        $("#region-stat-chart").remove();
+        $("#region-stat-chart-container").append(
+          $("<canvas>").attr("id", "region-stat-chart")
+        );
+        var ctx = document.getElementById("region-stat-chart").getContext("2d");
+
+        var myChart = new Chart(ctx, {
+          type: "line",
+          data: {
+            labels: [],
+            datasets: [
+              {
+                label: "Confirmed",
+                data: [],
+                backgroundColor: ["rgba(204, 204, 0, 0.4)"],
+                borderColor: ["rgba(204, 204, 0, 1)"],
+                borderWidth: 1
+              },
+              {
+                label: "Deaths",
+                data: [],
+                backgroundColor: ["rgba(255, 0, 0, 0.4)"],
+                borderColor: ["rgba(255, 0, 0, 1)"],
+                borderWidth: 1
+              },
+              {
+                label: "Recovered",
+                data: [],
+                backgroundColor: ["rgba(0, 255, 0, 0.4)"],
+                borderColor: ["rgba(0, 255, 0, 1)"],
+                borderWidth: 1
+              }
+            ]
+          },
+          options: {
+            scales: {
+              yAxes: [
+                {
+                  ticks: {
+                    beginAtZero: true
+                  }
+                }
+              ]
+            }
+          }
+        });
+        return myChart;
+      };
+    </script>
   </head>
   <body>
     <div id="loader" style="display: flex; justify-content: center;">
@@ -227,10 +377,50 @@
               data-dismiss="modal"
               aria-label="Close"
             >
-              <span aria-hidden="true">&times;</span>
+              <span aria-hidden="true" id="modal-body">&times;</span>
             </button>
           </div>
-          <div class="modal-body" id="modal-body"></div>
+          <div class="modal-body">
+            <div class="container-fluid">
+              <div class="row">
+                <div class="col-md-6">
+                  <div id="region-stat-chart-container">
+                    <canvas id="region-stat-chart"></canvas>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <ul class="list-group-item">
+                    <li class="list-group-item"><h6>New</h6></li>
+                    <li
+                      class="list-group-item list-group-item-warning"
+                      id="region-new-confirmed"
+                    ></li>
+                    <li
+                      class="list-group-item list-group-item-danger"
+                      id="region-new-deaths"
+                    ></li>
+                    <li
+                      class="list-group-item list-group-item-success"
+                      id="region-new-recovered"
+                    ></li>
+                    <li class="list-group-item"><h6>Total</h6></li>
+                    <li
+                      class="list-group-item list-group-item-warning"
+                      id="region-total-confirmed"
+                    ></li>
+                    <li
+                      class="list-group-item list-group-item-danger"
+                      id="region-total-deaths"
+                    ></li>
+                    <li
+                      class="list-group-item list-group-item-success"
+                      id="region-total-recovered"
+                    ></li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
