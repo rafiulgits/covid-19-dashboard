@@ -2,8 +2,12 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
   <head>
-    <title>Covid 19 Dashboard</title>
     <meta content="text/html; charset=utf-8" http-equiv="Content-Type" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+
+    <title>Covid 19 Dashboard</title>
 
     <link
       href="./dist/jqvmap.css"
@@ -29,28 +33,6 @@
         height: 100%;
         padding: 0;
         margin: 0;
-      }
-      .modal-dialog {
-        width: 100% !important;
-        height: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        max-width: none !important;
-      }
-
-      .modal-content {
-        height: auto !important;
-        min-height: 100% !important;
-        border-radius: 0 !important;
-        background-color: #ececec !important;
-      }
-
-      .modal-header {
-        border-bottom: 1px solid #9ea2a2 !important;
-      }
-
-      .modal-footer {
-        border-top: 1px solid #9ea2a2 !important;
       }
     </style>
 
@@ -367,7 +349,7 @@
       aria-labelledby=""
       aria-hidden="true"
     >
-      <div class="modal-dialog modal-dialog-centered" role="document">
+      <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title" id="modal-title"></h5>
@@ -383,14 +365,21 @@
           <div class="modal-body">
             <div class="container-fluid">
               <div class="row">
-                <div class="col-md-6">
+                <div class="col-md-12">
                   <div id="region-stat-chart-container">
                     <canvas id="region-stat-chart"></canvas>
                   </div>
                 </div>
+              </div>
+            </div>
+
+            <div class="container-fluid">
+              <div class="row">
                 <div class="col-md-6">
-                  <ul class="list-group-item">
-                    <li class="list-group-item"><h6>New</h6></li>
+                  <ul class="list-group">
+                    <li class="list-group-item">
+                      <h6>New</h6>
+                    </li>
                     <li
                       class="list-group-item list-group-item-warning"
                       id="region-new-confirmed"
@@ -403,7 +392,13 @@
                       class="list-group-item list-group-item-success"
                       id="region-new-recovered"
                     ></li>
-                    <li class="list-group-item"><h6>Total</h6></li>
+                  </ul>
+                </div>
+                <div class="col-md-6">
+                  <ul class="list-group">
+                    <li class="list-group-item">
+                      <h6>Total</h6>
+                    </li>
                     <li
                       class="list-group-item list-group-item-warning"
                       id="region-total-confirmed"
