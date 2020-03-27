@@ -11,6 +11,10 @@
       rel="stylesheet"
       type="text/css"
     />
+    <link
+      rel="stylesheet"
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+    />
     <style>
       html,
       body {
@@ -18,26 +22,47 @@
         margin: 0;
         width: 100%;
         height: 100%;
+        position: relative;
       }
       #vmap {
         width: 100%;
         height: 100%;
+        padding: 0;
+        margin: 0;
       }
     </style>
 
-    <script
-      type="text/javascript"
-      src="http://code.jquery.com/jquery-1.11.3.min.js"
-    ></script>
-    <script type="text/javascript" src="./dist/jquery.vmap.js"></script>
-    <script
-      type="text/javascript"
-      src="./dist/maps/jquery.vmap.world.js"
-      charset="utf-8"
-    ></script>
+    <script src="http://code.jquery.com/jquery-1.11.3.min.js"></script>
+    <script src="./dist/jquery.vmap.js"></script>
+    <script src="./dist/maps/jquery.vmap.world.js" charset="utf-8"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.2/axios.min.js"></script>
     <script type="text/javascript" src="js/jquery.vmap.sampledata.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
 
+    <!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script> -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
+
+    <!-- API and map  -->
     <script type="text/javascript">
+      var loaded = false;
+      var allCountrySummary = [];
+      var totalInformation = {
+        totalConfirmed: 0,
+        totalDeaths: 0,
+        totalRecovered: 0
+      };
+
+      const processAPIData = data => {
+        allCountrySummary = data.Countries;
+
+        allCountrySummary.forEach(country => {
+          totalInformation.totalConfirmed += country.TotalConfirmed;
+          totalInformation.totalDeaths += country.TotalDeaths;
+          totalInformation.totalRecovered += country.TotalRecovered;
+        });
+      };
+
       const buildNotfication = result => {
         let notification = `New Confirmed : ${result.NewConfirmed}\n`;
         notification += `Total Confirmed : ${result.TotalConfirmed}\n`;
@@ -48,11 +73,10 @@
         return notification;
       };
 
-      var loaded = false;
-
-      const show = () => {
+      const removeLoaderAndShowMap = () => {
         $("#loader").hide();
-        jQuery("#vmap").vectorMap({
+        $("body").append($("<div>").attr("id", "vmap"));
+        $("#vmap").vectorMap({
           map: "world_en",
           enableZoom: true,
           showTooltip: true,
@@ -60,47 +84,155 @@
             console.log("Map Size: " + width + "x" + height);
           },
           onRegionClick: function(element, code, region) {
-            let result = summary.find(item => {
-              return item["Country"] === region;
+            let result = allCountrySummary.find(item => {
+              return item["Country"] === region || item["Country"] === code;
             });
             if (result !== undefined) {
               let notification = buildNotfication(result);
-              console.log(result);
-              alert(notification);
-              return;
-            }
-            let reCheck = summary.find(
-              item => item.Country.toLowerCase() === code.toLowerCase()
-            );
-            if (reCheck !== undefined) {
-              let notification = buildNotfication(reCheck);
-              alert(notification);
+              $("#modal-title").text(region);
+              $("#modal-body").text(notification);
+              $("#alert-modal").modal("show");
               return;
             }
           }
         });
       };
-      var summary = [];
+
       $(() => {
         axios
           .get("https://api.covid19api.com/summary", null)
           .then(res => {
-            summary = res.data.Countries;
+            processAPIData(res.data);
             loaded = true;
-            show();
+            removeLoaderAndShowMap();
+            showStatistics();
           })
           .catch(err => {
             console.err(err);
           });
       });
     </script>
+
+    <!-- Statistics chart -->
+    <script>
+      const buildStatisticsList = () => {
+        return $("<ul>")
+          .addClass("list-group mt-3 mb-2")
+          .append(
+            $("<li>")
+              .addClass("list-group-item")
+              .append(
+                $("<h3>")
+                  .addClass("text-center")
+                  .text("Statistics")
+              ),
+            $("<li>")
+              .addClass("list-group-item list-group-item-warning")
+              .text(`Total Confirmed : ${totalInformation.totalConfirmed}`),
+            $("<li>")
+              .addClass("list-group-item list-group-item-danger")
+              .text(`Total Deaths : ${totalInformation.totalDeaths}`),
+            $("<li>")
+              .addClass("list-group-item list-group-item-success")
+              .text(`Total Confirmed : ${totalInformation.totalRecovered}`)
+          );
+      };
+      const showStatistics = () => {
+        let list = buildStatisticsList();
+        let stat = $("<div>")
+          .addClass("container-fluid mt-2 mb-5")
+          .append(
+            $("<div>")
+              .addClass("row")
+              .append(
+                $("<div>")
+                  .addClass("col-md-6")
+                  .append(list),
+                $("<div>")
+                  .addClass("col-md-6")
+                  .append($("<canvas>").attr("id", "total-stat-chart"))
+              )
+          );
+        $("body").append(stat);
+        renderTotalStatChart(totalInformation);
+      };
+      const renderTotalStatChart = data => {
+        var ctx = $("#total-stat-chart");
+        var myChart = new Chart(ctx, {
+          type: "horizontalBar",
+          data: {
+            labels: ["Total Confirmed", "Total Deaths", "Total Recovered"],
+            datasets: [
+              {
+                label: "World Wide Statisticss",
+                data: [
+                  data.totalConfirmed,
+                  data.totalDeaths,
+                  data.totalRecovered
+                ],
+                backgroundColor: [
+                  "rgba(255, 255, 0, 1)",
+                  "rgba(255, 0, 0, 1)",
+                  "rgba(0, 255, 0, 1)"
+                ],
+                borderColor: [],
+                borderWidth: 1
+              }
+            ]
+          },
+          options: {
+            scales: {
+              yAxes: [
+                {
+                  ticks: {
+                    beginAtZero: true
+                  }
+                }
+              ]
+            }
+          }
+        });
+      };
+    </script>
   </head>
   <body>
     <div id="loader" style="display: flex; justify-content: center;">
-      <h2 style="text-align: center;">Loading Data...</h2>
+      <div class="spinner-grow text-muted mt-3"></div>
+      <div class="spinner-grow text-primary mt-3"></div>
+      <div class="spinner-grow text-success mt-3"></div>
+      <div class="spinner-grow text-info mt-3"></div>
+      <div class="spinner-grow text-warning mt-3"></div>
+      <div class="spinner-grow text-danger mt-3"></div>
+      <div class="spinner-grow text-secondary mt-3"></div>
+      <div class="spinner-grow text-dark mt-3"></div>
+      <div class="spinner-grow text-light mt-3"></div>
     </div>
-    <div id="vmap"></div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.2/axios.min.js"></script>
+    <!-- Modal -->
+    <div
+      class="modal fade"
+      id="alert-modal"
+      tabindex="-1"
+      role="dialog"
+      aria-labelledby=""
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modal-title"></h5>
+            <button
+              type="button"
+              class="close"
+              data-dismiss="modal"
+              aria-label="Close"
+            >
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </div>
+          <div class="modal-body" id="modal-body"></div>
+        </div>
+      </div>
+    </div>
   </body>
 </html>
