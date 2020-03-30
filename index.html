@@ -103,17 +103,7 @@
               showRegionResultText(result);
               $("#modal-title").text(region);
               $("#alert-modal").modal("show");
-              let exception = code.toLowerCase();
-              if (exception === "us") {
-                fetchAndDisplay(code);
-                return;
-              }
-              if (exception === "ru") {
-                fetchAndDisplay("russia");
-                return;
-              }
-              fetchAndDisplay(region);
-              return;
+              fetchAndDisplay(result["Slug"]);
             }
           }
         });
