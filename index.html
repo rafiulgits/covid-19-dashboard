@@ -54,7 +54,8 @@
       var totalInformation = {
         totalConfirmed: 0,
         totalDeaths: 0,
-        totalRecovered: 0
+        totalRecovered: 0,
+        currentPatient: 0
       };
 
       const processAPIData = data => {
@@ -65,6 +66,10 @@
           totalInformation.totalDeaths += country.TotalDeaths;
           totalInformation.totalRecovered += country.TotalRecovered;
         });
+
+        totalInformation.currentPatient =
+          totalInformation.totalConfirmed -
+          (totalInformation.totalDeaths + totalInformation.totalRecovered);
       };
 
       const showRegionResultText = result => {
@@ -145,7 +150,10 @@
               .text(`Total Deaths : ${totalInformation.totalDeaths}`),
             $("<li>")
               .addClass("list-group-item list-group-item-success")
-              .text(`Total Recovered : ${totalInformation.totalRecovered}`)
+              .text(`Total Recovered : ${totalInformation.totalRecovered}`),
+            $("<li>")
+              .addClass("list-group-item list-group-item-warning")
+              .text(`Current Patient : ${totalInformation.currentPatient}`)
           );
       };
       const showStatistics = () => {
