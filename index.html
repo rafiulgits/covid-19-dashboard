@@ -40,7 +40,10 @@
     <script src="./dist/jquery.vmap.js"></script>
     <script src="./dist/maps/jquery.vmap.world.js" charset="utf-8"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.2/axios.min.js"></script>
-    <script type="text/javascript" src="js/jquery.vmap.sampledata.js"></script>
+    <script
+      type="text/javascript"
+      src="./js/jquery.vmap.sampledata.js"
+    ></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
 
     <!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script> -->
@@ -55,13 +58,14 @@
         totalConfirmed: 0,
         totalDeaths: 0,
         totalRecovered: 0,
-        currentPatient: 0
+        currentPatient: 0,
+        deathRate: 0.0,
       };
 
-      const processAPIData = data => {
+      const processAPIData = (data) => {
         allCountrySummary = data.Countries;
 
-        allCountrySummary.forEach(country => {
+        allCountrySummary.forEach((country) => {
           totalInformation.totalConfirmed += country.TotalConfirmed;
           totalInformation.totalDeaths += country.TotalDeaths;
           totalInformation.totalRecovered += country.TotalRecovered;
@@ -70,9 +74,18 @@
         totalInformation.currentPatient =
           totalInformation.totalConfirmed -
           (totalInformation.totalDeaths + totalInformation.totalRecovered);
+
+        totalInformation.deathRate = (
+          (totalInformation.totalDeaths / totalInformation.totalConfirmed) *
+          100
+        ).toFixed(2);
       };
 
-      const showRegionResultText = result => {
+      const showRegionResultText = (result) => {
+        let deathRatio = (
+          (result.TotalDeaths / result.TotalConfirmed) *
+          100
+        ).toFixed(2);
         $("#region-new-confirmed").text(`Confirmed : ${result.NewConfirmed}`);
         $("#region-new-deaths").text(`Deaths : ${result.NewDeaths}`);
         $("#region-new-recovered").text(`Recovered : ${result.NewRecovered}`);
@@ -83,6 +96,7 @@
         $("#region-total-recovered").text(
           `Recovered : ${result.TotalRecovered}`
         );
+        $("#region-total-death-ratio").text(`Death Ratio : ${deathRatio}`);
       };
 
       const removeLoaderAndShowMap = () => {
@@ -92,12 +106,12 @@
           map: "world_en",
           enableZoom: true,
           showTooltip: true,
-          onResize: function(element, width, height) {
+          onResize: function (element, width, height) {
             console.log("Map Size: " + width + "x" + height);
           },
-          onRegionClick: function(element, code, region) {
+          onRegionClick: function (element, code, region) {
             console.log(code);
-            let result = allCountrySummary.find(item => {
+            let result = allCountrySummary.find((item) => {
               return (
                 item["Country"] === region ||
                 item["Country"].toLowerCase() === code
@@ -110,21 +124,21 @@
               $("#alert-modal").modal("show");
               fetchAndDisplay(result["Slug"]);
             }
-          }
+          },
         });
       };
 
       $(() => {
         axios
           .get("https://api.covid19api.com/summary", null)
-          .then(res => {
+          .then((res) => {
             processAPIData(res.data);
             loaded = true;
             removeLoaderAndShowMap();
             showStatistics();
           })
-          .catch(err => {
-            console.err(err);
+          .catch((err) => {
+            console.error(err);
           });
       });
     </script>
@@ -137,11 +151,7 @@
           .append(
             $("<li>")
               .addClass("list-group-item")
-              .append(
-                $("<h3>")
-                  .addClass("text-center")
-                  .text("Statistics")
-              ),
+              .append($("<h3>").addClass("text-center").text("Statistics")),
             $("<li>")
               .addClass("list-group-item list-group-item-warning")
               .text(`Total Confirmed : ${totalInformation.totalConfirmed}`),
@@ -153,7 +163,10 @@
               .text(`Total Recovered : ${totalInformation.totalRecovered}`),
             $("<li>")
               .addClass("list-group-item list-group-item-warning")
-              .text(`Current Patient : ${totalInformation.currentPatient}`)
+              .text(`Current Patient : ${totalInformation.currentPatient}`),
+            $("<li>")
+              .addClass("list-group-item list-group-item-danger")
+              .text(`Death Rate : ${totalInformation.deathRate}%`)
           );
       };
       const showStatistics = () => {
@@ -164,9 +177,7 @@
             $("<div>")
               .addClass("row")
               .append(
-                $("<div>")
-                  .addClass("col-md-6")
-                  .append(list),
+                $("<div>").addClass("col-md-6").append(list),
                 $("<div>")
                   .addClass("col-md-6")
                   .append($("<canvas>").attr("id", "total-stat-chart"))
@@ -175,7 +186,7 @@
         $("body").append(stat);
         renderTotalStatChart(totalInformation);
       };
-      const renderTotalStatChart = data => {
+      const renderTotalStatChart = (data) => {
         var ctx = $("#total-stat-chart");
         var myChart = new Chart(ctx, {
           type: "horizontalBar",
@@ -187,52 +198,52 @@
                 data: [
                   data.totalConfirmed,
                   data.totalDeaths,
-                  data.totalRecovered
+                  data.totalRecovered,
                 ],
                 backgroundColor: [
                   "rgba(255, 255, 0, 1)",
                   "rgba(255, 0, 0, 1)",
-                  "rgba(0, 255, 0, 1)"
+                  "rgba(0, 255, 0, 1)",
                 ],
                 borderColor: [],
-                borderWidth: 1
-              }
-            ]
+                borderWidth: 1,
+              },
+            ],
           },
           options: {
             scales: {
               yAxes: [
                 {
                   ticks: {
-                    beginAtZero: true
-                  }
-                }
-              ]
-            }
-          }
+                    beginAtZero: true,
+                  },
+                },
+              ],
+            },
+          },
         });
       };
     </script>
 
     <!-- Region wise information  -->
     <script>
-      const processRegionAPIData = objArr => {
+      const processRegionAPIData = (objArr) => {
         let list = [];
-        Array.from(objArr).forEach(item => {
+        Array.from(objArr).forEach((item) => {
           list.push(item.Cases);
         });
         return list;
       };
 
-      const processDateTimeFromAPIData = objArr => {
+      const processDateTimeFromAPIData = (objArr) => {
         let list = [];
-        Array.from(objArr).forEach(item => {
+        Array.from(objArr).forEach((item) => {
           list.push(new Date(item.Date).getDate().toLocaleString());
         });
         return list;
       };
 
-      const fetchAndDisplay = region => {
+      const fetchAndDisplay = (region) => {
         let chart = generateRegionChart();
         fetchRegionData(region, chart);
       };
@@ -242,34 +253,34 @@
           .get(
             `https://api.covid19api.com/total/country/${region}/status/confirmed`
           )
-          .then(res => {
+          .then((res) => {
             chart.data.datasets[0].data = processRegionAPIData(res.data);
             chart.data.labels = processDateTimeFromAPIData(res.data);
             chart.update();
           })
-          .catch(err => {
+          .catch((err) => {
             console.error(err);
           });
         axios
           .get(
             `https://api.covid19api.com/total/country/${region}/status/deaths`
           )
-          .then(res => {
+          .then((res) => {
             chart.data.datasets[1].data = processRegionAPIData(res.data);
             chart.update();
           })
-          .catch(err => {
+          .catch((err) => {
             console.error(err);
           });
         axios
           .get(
             `https://api.covid19api.com/total/country/${region}/status/recovered`
           )
-          .then(res => {
+          .then((res) => {
             chart.data.datasets[2].data = processRegionAPIData(res.data);
             chart.update();
           })
-          .catch(err => {
+          .catch((err) => {
             console.error(err);
           });
       };
@@ -291,35 +302,35 @@
                 data: [],
                 backgroundColor: ["rgba(204, 204, 0, 0.4)"],
                 borderColor: ["rgba(204, 204, 0, 1)"],
-                borderWidth: 1
+                borderWidth: 1,
               },
               {
                 label: "Deaths",
                 data: [],
                 backgroundColor: ["rgba(255, 0, 0, 0.4)"],
                 borderColor: ["rgba(255, 0, 0, 1)"],
-                borderWidth: 1
+                borderWidth: 1,
               },
               {
                 label: "Recovered",
                 data: [],
                 backgroundColor: ["rgba(0, 255, 0, 0.4)"],
                 borderColor: ["rgba(0, 255, 0, 1)"],
-                borderWidth: 1
-              }
-            ]
+                borderWidth: 1,
+              },
+            ],
           },
           options: {
             scales: {
               yAxes: [
                 {
                   ticks: {
-                    beginAtZero: true
-                  }
-                }
-              ]
-            }
-          }
+                    beginAtZero: true,
+                  },
+                },
+              ],
+            },
+          },
         });
         return myChart;
       };
@@ -408,6 +419,10 @@
                     <li
                       class="list-group-item list-group-item-success"
                       id="region-total-recovered"
+                    ></li>
+                    <li
+                      class="list-group-item list-group-item-danger"
+                      id="region-total-death-ratio"
                     ></li>
                   </ul>
                 </div>
